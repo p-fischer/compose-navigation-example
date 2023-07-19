@@ -25,6 +25,7 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navigation
 
 sealed class Screen(val route: String) {
     object Home : Screen("home")
@@ -35,10 +36,11 @@ sealed class Screen(val route: String) {
 
 enum class TopLevelDestination(
     val title: String,
+    val route: String,
     val screen: Screen,
 ) {
-    HOME("Home", Screen.Home),
-    MORE("More", Screen.More),
+    HOME("Home", "home_graph", Screen.Home),
+    MORE("More", "more_graph", Screen.More),
 }
 
 val bottomBarItems = listOf(TopLevelDestination.HOME, TopLevelDestination.MORE)
@@ -46,12 +48,12 @@ val bottomBarItems = listOf(TopLevelDestination.HOME, TopLevelDestination.MORE)
 @Composable
 fun MainScreen() {
     val navController = rememberNavController()
+    val currentTopLevelDestination by navController.currentTopLevelDestinationAsState()
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
             NavigationBar {
-                val currentTopLevelDestination by navController.currentTopLevelDestinationAsState()
-
                 bottomBarItems.forEach { item ->
                     val screen = item.screen
                     NavigationBarItem(
@@ -82,43 +84,53 @@ fun MainScreen() {
     ) { paddingValues ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Home.route,
+            startDestination = TopLevelDestination.HOME.route,
             modifier = Modifier.padding(paddingValues)
         ) {
-            composable(Screen.Home.route) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    Button(onClick = { navController.navigate(Screen.HomeDetail.route) }) {
-                        Text("Go to Home Detail")
+            navigation(
+                route = TopLevelDestination.HOME.route,
+                startDestination = Screen.Home.route,
+            ) {
+                composable(Screen.Home.route) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        Button(onClick = { navController.navigate(Screen.HomeDetail.route) }) {
+                            Text("Go to Home Detail")
+                        }
+                    }
+                }
+                composable(Screen.HomeDetail.route) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        Text("Home Detail")
                     }
                 }
             }
-            composable(Screen.HomeDetail.route) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    Text("Home Detail")
-                }
-            }
-            composable(Screen.More.route) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    Button(onClick = { navController.navigate(Screen.MoreDetail.route) }) {
-                        Text("Go to More Detail")
+            navigation(
+                route = TopLevelDestination.MORE.route,
+                startDestination = Screen.More.route,
+            ) {
+                composable(Screen.More.route) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        Button(onClick = { navController.navigate(Screen.MoreDetail.route) }) {
+                            Text("Go to More Detail")
+                        }
                     }
                 }
-            }
-            composable(Screen.MoreDetail.route) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    Text("More Detail")
+                composable(Screen.MoreDetail.route) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        Text("More Detail")
+                    }
                 }
             }
         }
