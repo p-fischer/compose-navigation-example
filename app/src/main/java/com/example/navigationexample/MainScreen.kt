@@ -12,24 +12,36 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 
-sealed class Screen(val route: String, val name: String) {
-    object Home : Screen("home", "Home")
-    object HomeDetail : Screen("home_detail", "")
-    object More : Screen("more", "More")
-    object MoreDetail : Screen("more_detail", "")
+sealed class Screen(val route: String) {
+    object Home : Screen("home")
+    object HomeDetail : Screen("home_detail")
+    object More : Screen("more")
+    object MoreDetail : Screen("more_detail")
 }
 
-val bottomBarItems = listOf(Screen.Home, Screen.More)
+enum class TopLevelDestination(
+    val title: String,
+    val screen: Screen,
+) {
+    HOME("Home", Screen.Home),
+    MORE("More", Screen.More),
+}
+
+val bottomBarItems = listOf(TopLevelDestination.HOME, TopLevelDestination.MORE)
 
 @Composable
 fun MainScreen() {
@@ -38,13 +50,14 @@ fun MainScreen() {
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
             NavigationBar {
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentDestination = navBackStackEntry?.destination
-                bottomBarItems.forEach { screen ->
+                val currentTopLevelDestination by navController.currentTopLevelDestinationAsState()
+
+                bottomBarItems.forEach { item ->
+                    val screen = item.screen
                     NavigationBarItem(
                         icon = { Icon(Icons.Filled.Favorite, contentDescription = null) },
-                        label = { Text(screen.name) },
-                        selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
+                        label = { Text(item.title) },
+                        selected = screen == currentTopLevelDestination.screen,
                         onClick = {
                             navController.navigate(screen.route) {
                                 // Pop up to the start destination of the graph to
@@ -110,4 +123,34 @@ fun MainScreen() {
             }
         }
     }
+}
+
+/**
+ * Adds an [NavController.OnDestinationChangedListener] to this [NavController] and updates the
+ * returned [State] which is updated as the destination changes.
+ */
+@Composable
+fun NavController.currentTopLevelDestinationAsState(): State<TopLevelDestination> {
+    val selectedItem = remember { mutableStateOf(TopLevelDestination.HOME) }
+
+    DisposableEffect(this) {
+        val listener = NavController.OnDestinationChangedListener { _, destination, _ ->
+            when {
+                destination.hierarchy.any { it.route == Screen.Home.route } -> {
+                    selectedItem.value = TopLevelDestination.HOME
+                }
+
+                destination.hierarchy.any { it.route == Screen.More.route } -> {
+                    selectedItem.value = TopLevelDestination.MORE
+                }
+            }
+        }
+        addOnDestinationChangedListener(listener)
+
+        onDispose {
+            removeOnDestinationChangedListener(listener)
+        }
+    }
+
+    return selectedItem
 }
