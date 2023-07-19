@@ -65,6 +65,7 @@ dependencies {
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.ui.test.junit4)
+    implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.navigation.compose)
     debugImplementation(libs.ui.tooling)
     debugImplementation(libs.ui.test.manifest)
