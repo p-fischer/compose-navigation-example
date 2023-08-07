@@ -36,11 +36,10 @@ sealed class Screen(val route: String) {
 
 enum class TopLevelDestination(
     val title: String,
-    val route: String,
-    val screen: Screen,
+    val navGraphRoute: String,
 ) {
-    HOME("Home", "home_graph", Screen.Home),
-    MORE("More", "more_graph", Screen.More),
+    HOME("Home", "home_graph"),
+    MORE("More", "more_graph"),
 }
 
 val bottomBarItems = listOf(TopLevelDestination.HOME, TopLevelDestination.MORE)
@@ -55,25 +54,24 @@ fun MainScreen() {
         bottomBar = {
             NavigationBar {
                 bottomBarItems.forEach { item ->
-                    val screen = item.screen
+                    val isTabAlreadySelected = item == currentTopLevelDestination
                     NavigationBarItem(
                         icon = { Icon(Icons.Filled.Favorite, contentDescription = null) },
                         label = { Text(item.title) },
-                        selected = screen == currentTopLevelDestination.screen,
+                        selected = isTabAlreadySelected,
                         onClick = {
-                            navController.navigate(screen.route) {
+                            navController.navigate(item.navGraphRoute) {
                                 // Pop up to the start destination of the graph to
                                 // avoid building up a large stack of destinations
                                 // on the back stack as users select items
                                 popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+                                    saveState = !isTabAlreadySelected
                                 }
                                 // Avoid multiple copies of the same destination when
                                 // reselecting the same item
                                 launchSingleTop = true
                                 // Restore state when reselecting a previously selected item
-
-                                restoreState = true
+                                restoreState = !isTabAlreadySelected
                             }
                         }
                     )
@@ -84,11 +82,11 @@ fun MainScreen() {
     ) { paddingValues ->
         NavHost(
             navController = navController,
-            startDestination = TopLevelDestination.HOME.route,
+            startDestination = TopLevelDestination.HOME.navGraphRoute,
             modifier = Modifier.padding(paddingValues)
         ) {
             navigation(
-                route = TopLevelDestination.HOME.route,
+                route = TopLevelDestination.HOME.navGraphRoute,
                 startDestination = Screen.Home.route,
             ) {
                 composable(Screen.Home.route) {
@@ -111,7 +109,7 @@ fun MainScreen() {
                 }
             }
             navigation(
-                route = TopLevelDestination.MORE.route,
+                route = TopLevelDestination.MORE.navGraphRoute,
                 startDestination = Screen.More.route,
             ) {
                 composable(Screen.More.route) {
@@ -148,12 +146,13 @@ fun NavController.currentTopLevelDestinationAsState(): State<TopLevelDestination
     DisposableEffect(this) {
         val listener = NavController.OnDestinationChangedListener { _, destination, _ ->
             when {
-                destination.hierarchy.any { it.route == Screen.Home.route } -> {
-                    selectedItem.value = TopLevelDestination.HOME
+                destination.hierarchy.any { it.route == TopLevelDestination.MORE.navGraphRoute } -> {
+                    selectedItem.value = TopLevelDestination.MORE
                 }
 
-                destination.hierarchy.any { it.route == Screen.More.route } -> {
-                    selectedItem.value = TopLevelDestination.MORE
+                // TopLevelDestination.HOME is the start destination and, therefore, part of any stack
+                else -> {
+                    selectedItem.value = TopLevelDestination.HOME
                 }
             }
         }
